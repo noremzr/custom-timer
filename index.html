@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>OBS & TikTok Speedrun Timer</title>
+  <title>OBS & TikTok Speedrun Multi-Game Timer</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;600&display=swap');
 
@@ -23,7 +23,11 @@
       color: var(--text-main);
       font-family: 'Inter', sans-serif;
       display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
       padding: 10px;
+      min-height: 100vh;
+      overflow: hidden;
       user-select: none;
     }
 
@@ -31,12 +35,14 @@
       position: relative;
       background: var(--bg-card);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--border-color);
       border-left: 5px solid var(--accent-color);
       border-radius: 12px;
       padding: 14px 20px;
       width: 380px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
     }
 
     .timer-card.paused { border-left-color: var(--accent-pause); }
@@ -54,6 +60,16 @@
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .status-badge {
@@ -71,11 +87,39 @@
       color: var(--accent-pause);
     }
 
+    .btn-header-action {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s ease-in-out;
+      pointer-events: none;
+    }
+
+    .btn-header-action:hover {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+
+    .timer-card:hover .btn-header-action {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     .timer-content-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin: 2px 0 8px 0;
+      gap: 12px;
     }
 
     .time-display {
@@ -84,8 +128,22 @@
       align-items: baseline;
     }
 
-    .time-main { font-size: 3.2rem; font-weight: 700; }
-    .time-ms { font-size: 1.4rem; font-weight: 600; color: var(--accent-color); margin-left: 4px; }
+    .time-main {
+      font-size: 3.2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      line-height: 1;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+    }
+
+    .time-ms {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-left: 4px;
+      width: 36px;
+    }
+
     .timer-card.paused .time-ms { color: var(--accent-pause); }
 
     .death-badge-container {
@@ -97,31 +155,71 @@
       padding: 4px 8px;
       border-radius: 8px;
       font-family: 'Chakra Petch', sans-serif;
+      transition: all 0.2s ease;
     }
 
-    .death-count-text { font-size: 1.25rem; font-weight: 700; color: var(--accent-death); }
+    .death-icon { font-size: 0.9rem; opacity: 0.9; }
+
+    .death-count-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-death);
+      min-width: 24px;
+      text-align: center;
+    }
 
     .death-quick-btn {
       background: rgba(255, 255, 255, 0.1);
       border: none;
       color: #fff;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 4px;
+      font-size: 0.75rem;
       font-weight: 700;
+      line-height: 1;
       cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
     }
+
+    .death-badge-container:hover .death-quick-btn { display: flex; }
+    .death-quick-btn:hover { background: rgba(255, 255, 255, 0.3); }
 
     .controls-panel {
       background: rgba(0, 0, 0, 0.4);
       border-radius: 8px;
-      padding: 10px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      max-height: 350px;
+      opacity: 1;
+      overflow: hidden;
+      transition: all 0.3s ease-in-out;
     }
 
     .row { display: flex; gap: 8px; align-items: center; }
+    label { font-size: 0.75rem; color: var(--text-muted); width: 60px; }
+
+    select, input {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+    }
+
+    select { flex: 1; cursor: pointer; }
+    select option { background: #151520; color: #fff; }
+    input.time-input { width: 42px; text-align: center; font-family: 'Chakra Petch', sans-serif; }
+    input.death-input { width: 60px; text-align: center; font-family: 'Chakra Petch', sans-serif; }
 
     button {
       background: rgba(255, 255, 255, 0.1);
@@ -135,22 +233,69 @@
     }
 
     button.btn-primary { background: var(--accent-color); color: #0f0f13; border: none; }
+    button.btn-danger { background: rgba(255, 77, 77, 0.2); color: #ff6b6b; border: 1px solid rgba(255, 77, 77, 0.3); }
 
-    .timer-card.compact .controls-panel { display: none; }
+    .shortcuts-hint { font-size: 0.65rem; color: var(--text-muted); text-align: center; opacity: 0.75; line-height: 1.4; }
+
+    .timer-card.compact { width: auto; padding: 8px 16px; }
+
+    .timer-card.compact .controls-panel {
+      max-height: 0;
+      padding: 0;
+      margin: 0;
+      border: none;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .timer-card.compact .timer-content-row { margin: 0; }
     .timer-card.compact .time-main { font-size: 2.7rem; }
+    .timer-card.compact .death-badge-container { padding: 2px 8px; }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 10, 15, 0.9);
+      border-radius: 12px;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .modal-overlay.active { display: flex; }
+    .modal-title { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+    .modal-input { width: 100%; text-align: left; }
+    .modal-actions { display: flex; gap: 8px; width: 100%; }
+    .modal-actions button { flex: 1; }
   </style>
 
-  <!-- SDKs do Firebase -->
+  <!-- SDKs do Firebase Compatíveis com Navegador -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
   <div class="timer-card paused compact" id="timerCard">
+    <div class="modal-overlay" id="customModal">
+      <div class="modal-title">Nome do novo jogo / perfil:</div>
+      <input type="text" class="modal-input" id="modalProfileInput" placeholder="Ex: Dark Souls" autofocus>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="confirmNewProfile()">Salvar</button>
+        <button onclick="closeModal()">Cancelar</button>
+      </div>
+    </div>
+
     <div class="profile-header">
-      <div class="game-title">Timer Live</div>
-      <button onclick="toggleCompactMode()" style="font-size: 0.7rem; padding: 2px 6px;">⚙️ Controles</button>
-      <div class="status-badge" id="statusBadge">Pausado</div>
+      <div class="game-title" id="displayGameName">Perfil: Padrão</div>
+      <div class="header-right">
+        <button class="btn-header-action" id="togglePlayBtn" onclick="toggleTimer()" title="Iniciar / Pausar">▶</button>
+        <button class="btn-header-action" id="toggleViewBtn" onclick="toggleCompactMode()" title="Expandir/Recolher Controles">⚙️</button>
+        <div class="status-badge" id="statusBadge">Pausado</div>
+      </div>
     </div>
 
     <div class="timer-content-row">
@@ -159,77 +304,186 @@
         <div class="time-ms" id="msTime">.00</div>
       </div>
 
-      <div class="death-badge-container">
-        <span>💀</span>
+      <div class="death-badge-container" title="Contador de Mortes">
+        <span class="death-icon">💀</span>
         <button class="death-quick-btn" onclick="changeDeaths(-1)">-</button>
         <span class="death-count-text" id="deathCountDisplay">0</span>
         <button class="death-quick-btn" onclick="changeDeaths(1)">+</button>
       </div>
     </div>
 
-    <div class="controls-panel">
+    <div class="controls-panel" id="controlsPanel">
       <div class="row">
-        <button class="btn-primary" style="flex: 1;" onclick="toggleTimer()">Start / Pause</button>
-        <button onclick="resetTimer()">Zerar Tempo</button>
+        <label>Perfil:</label>
+        <select id="profileSelect" onchange="switchProfile(this.value)"></select>
+        <button onclick="openModal()">+ Novo</button>
+        <button class="btn-danger" onclick="deleteProfile()">Excluir</button>
+      </div>
+
+      <div class="row">
+        <label>Tempo:</label>
+        <input type="text" class="time-input" id="inputHH" placeholder="HH" maxlength="2" value="00"> :
+        <input type="text" class="time-input" id="inputMM" placeholder="MM" maxlength="2" value="00"> :
+        <input type="text" class="time-input" id="inputSS" placeholder="SS" maxlength="2" value="00">
+        <button class="btn-primary" onclick="applyManualTime()">Setar</button>
+      </div>
+
+      <div class="row">
+        <label>Mortes:</label>
+        <input type="number" class="death-input" id="inputDeaths" placeholder="0" min="0" value="0">
+        <button class="btn-primary" onclick="applyManualDeaths()">Setar</button>
         <button onclick="resetDeaths()">Zerar Mortes</button>
+      </div>
+
+      <div class="row" style="justify-content: space-between; margin-top: 2px;">
+        <button class="btn-primary" style="flex: 1;" onclick="toggleTimer()">Iniciar / Pausar</button>
+        <button onclick="resetTimer()">Zerar Tempo</button>
+      </div>
+
+      <div class="shortcuts-hint">
+        <b>Atalhos:</b> [Espaço] Start/Pause | [D] +1 Morte | [Shift+D] -1 Morte<br>[R] Zerar Tempo | [C] Expandir/Recolher
       </div>
     </div>
   </div>
 
   <script>
-    // 1. Cole SUAS CHAVES DO FIREBASE AQUI
-  const firebaseConfig = {
-    apiKey: "AIzaSyA_xDYL3vVAQ8ZxurQll__-dWgx-X7Hf2U",
-    authDomain: "timer-live-a061e.firebaseapp.com",
-    databaseURL: "https://timer-live-a061e-default-rtdb.firebaseio.com",
-    projectId: "timer-live-a061e",
-    storageBucket: "timer-live-a061e.firebasestorage.app",
-    messagingSenderId: "536127458192",
-    appId: "1:536127458192:web:85462cfc4c43812038c115",
-    measurementId: "G-S6GLJ6W2V9"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_xDYL3vVAQ8ZxurQll__-dWgx-X7Hf2U",
+      authDomain: "timer-live-a061e.firebaseapp.com",
+      databaseURL: "https://timer-live-a061e-default-rtdb.firebaseio.com",
+      projectId: "timer-live-a061e",
+      storageBucket: "timer-live-a061e.firebasestorage.app",
+      messagingSenderId: "536127458192",
+      appId: "1:536127458192:web:85462cfc4c43812038c115",
+      measurementId: "G-S6GLJ6W2V9"
+    };
+
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref('timerState');
+    const db = firebase.database().ref('timerData');
 
-    let elapsedTime = 0;
+    let profiles = { "Jogo 1": { time: 0, deaths: 0 } };
+    let currentProfile = "Jogo 1";
+
     let startTime = 0;
+    let elapsedTime = 0;
     let deathCount = 0;
-    let isRunning = false;
     let timerInterval = null;
+    let isRunning = false;
+    let isCompact = true;
 
-    // 2. ESCUTAR MUDANÇAS EM TEMPO REAL (Para o TikTok e navegador)
+    // Sincronização em tempo real do Firebase
     db.on('value', (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
 
-      elapsedTime = data.elapsedTime || 0;
-      startTime = data.startTime || 0;
-      deathCount = data.deathCount || 0;
+      profiles = data.profiles || profiles;
+      currentProfile = data.currentProfile || Object.keys(profiles)[0];
       isRunning = data.isRunning || false;
+      startTime = data.startTime || Date.now();
 
-      document.getElementById('deathCountDisplay').textContent = deathCount;
+      if (profiles[currentProfile]) {
+        elapsedTime = profiles[currentProfile].time || 0;
+        deathCount = profiles[currentProfile].deaths || 0;
+      }
 
       if (isRunning) {
-        document.getElementById('timerCard').classList.remove('paused');
-        document.getElementById('statusBadge').textContent = 'Ao Vivo';
-        if (!timerInterval) timerInterval = setInterval(updateDisplay, 10);
+        applyRunningUI();
       } else {
-        document.getElementById('timerCard').classList.add('paused');
-        document.getElementById('statusBadge').textContent = 'Pausado';
-        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-        updateDisplay();
+        applyPausedUI();
       }
+
+      renderProfileSelect();
+      updateDisplay();
+      updateDeathDisplay();
     });
 
-    // 3. ENVIAR ATUALIZAÇÃO PARA O BANCO
-    function sendStateToFirebase() {
+    function syncToFirebase() {
+      const now = Date.now();
+      if (isRunning) {
+        elapsedTime += (now - startTime);
+        startTime = now;
+      }
+
+      if (profiles[currentProfile]) {
+        profiles[currentProfile].deaths = deathCount;
+        profiles[currentProfile].time = elapsedTime;
+      }
+
       db.set({
-        elapsedTime: elapsedTime,
-        startTime: startTime,
-        deathCount: deathCount,
+        profiles: profiles,
+        currentProfile: currentProfile,
         isRunning: isRunning,
-        updatedAt: Date.now()
+        startTime: startTime,
+        updatedAt: now
       });
+    }
+
+    function toggleCompactMode() {
+      isCompact = !isCompact;
+      const card = document.getElementById('timerCard');
+      const btn = document.getElementById('toggleViewBtn');
+      if (isCompact) {
+        card.classList.add('compact');
+        btn.textContent = '⚙️';
+      } else {
+        card.classList.remove('compact');
+        btn.textContent = '✕';
+      }
+    }
+
+    function renderProfileSelect() {
+      const select = document.getElementById('profileSelect');
+      select.innerHTML = '';
+      for (let name in profiles) {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === currentProfile) opt.selected = true;
+        select.appendChild(opt);
+      }
+      document.getElementById('displayGameName').textContent = currentProfile;
+    }
+
+    function switchProfile(newProfile) {
+      if (isRunning) pauseTimer();
+      profiles[currentProfile].time = elapsedTime;
+      profiles[currentProfile].deaths = deathCount;
+
+      currentProfile = newProfile;
+      elapsedTime = profiles[currentProfile].time || 0;
+      deathCount = profiles[currentProfile].deaths || 0;
+
+      syncToFirebase();
+    }
+
+    function openModal() {
+      const input = document.getElementById('modalProfileInput');
+      input.value = '';
+      document.getElementById('customModal').classList.add('active');
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeModal() {
+      document.getElementById('customModal').classList.remove('active');
+    }
+
+    function confirmNewProfile() {
+      const input = document.getElementById('modalProfileInput');
+      const name = input.value.trim();
+      if (name && !profiles[name]) {
+        profiles[name] = { time: 0, deaths: 0 };
+        switchProfile(name);
+      }
+      closeModal();
+    }
+
+    function deleteProfile() {
+      if (Object.keys(profiles).length <= 1) return;
+      delete profiles[currentProfile];
+      currentProfile = Object.keys(profiles)[0];
+      elapsedTime = profiles[currentProfile].time || 0;
+      deathCount = profiles[currentProfile].deaths || 0;
+      syncToFirebase();
     }
 
     function updateDisplay() {
@@ -241,48 +495,110 @@
       const hrs = Math.floor(totalSec / 3600);
 
       const pad = (n, len = 2) => String(n).padStart(len, '0');
+
       document.getElementById('mainTime').textContent = `${pad(hrs)}:${pad(min)}:${pad(sec)}`;
       document.getElementById('msTime').textContent = `.${pad(ms, 2)}`;
     }
 
-    function toggleTimer() {
-      const now = Date.now();
-      if (isRunning) {
-        elapsedTime += (now - startTime);
-        isRunning = false;
-      } else {
-        startTime = now;
-        isRunning = true;
+    function toggleTimer() { isRunning ? pauseTimer() : startTimer(); }
+
+    function applyRunningUI() {
+      isRunning = true;
+      if (!timerInterval) {
+        timerInterval = setInterval(updateDisplay, 10);
       }
-      sendStateToFirebase();
+      document.getElementById('timerCard').classList.remove('paused');
+      document.getElementById('statusBadge').textContent = 'Ao Vivo';
+      
+      const togglePlayBtn = document.getElementById('togglePlayBtn');
+      if (togglePlayBtn) { togglePlayBtn.textContent = '⏸'; togglePlayBtn.title = 'Pausar Timer'; }
+    }
+
+    function applyPausedUI() {
+      isRunning = false;
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      document.getElementById('timerCard').classList.add('paused');
+      document.getElementById('statusBadge').textContent = 'Pausado';
+      
+      const togglePlayBtn = document.getElementById('togglePlayBtn');
+      if (togglePlayBtn) { togglePlayBtn.textContent = '▶'; togglePlayBtn.title = 'Iniciar Timer'; }
+    }
+
+    function startTimer() {
+      if (isRunning) return;
+      startTime = Date.now();
+      isRunning = true;
+      syncToFirebase();
+    }
+
+    function pauseTimer() {
+      if (!isRunning) return;
+      elapsedTime += Date.now() - startTime;
+      isRunning = false;
+      syncToFirebase();
     }
 
     function resetTimer() {
-      isRunning = false;
+      if (isRunning) pauseTimer();
       elapsedTime = 0;
-      startTime = 0;
-      sendStateToFirebase();
+      profiles[currentProfile].time = 0;
+      syncToFirebase();
+    }
+
+    function applyManualTime() {
+      const hh = parseInt(document.getElementById('inputHH').value) || 0;
+      const mm = parseInt(document.getElementById('inputMM').value) || 0;
+      const ss = parseInt(document.getElementById('inputSS').value) || 0;
+
+      if (isRunning) pauseTimer();
+      elapsedTime = ((hh * 3600) + (mm * 60) + ss) * 1000;
+      profiles[currentProfile].time = elapsedTime;
+      syncToFirebase();
+    }
+
+    function updateDeathDisplay() {
+      document.getElementById('deathCountDisplay').textContent = deathCount;
+      document.getElementById('inputDeaths').value = deathCount;
     }
 
     function changeDeaths(delta) {
       deathCount = Math.max(0, deathCount + delta);
-      sendStateToFirebase();
+      syncToFirebase();
+    }
+
+    function applyManualDeaths() {
+      const val = parseInt(document.getElementById('inputDeaths').value);
+      if (!isNaN(val) && val >= 0) {
+        deathCount = val;
+        syncToFirebase();
+      }
     }
 
     function resetDeaths() {
       deathCount = 0;
-      sendStateToFirebase();
+      syncToFirebase();
     }
 
-    function toggleCompactMode() {
-      document.getElementById('timerCard').classList.toggle('compact');
-    }
-
-    // Atalhos do teclado
     window.addEventListener('keydown', (e) => {
+      const isModalActive = document.getElementById('customModal').classList.contains('active');
+      if (isModalActive) {
+        if (e.code === 'Enter') confirmNewProfile();
+        if (e.code === 'Escape') closeModal();
+        return;
+      }
+
+      if (['INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+      
       if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
-      else if (e.code === 'KeyD') { e.preventDefault(); changeDeaths(e.shiftKey ? -1 : 1); }
       else if (e.code === 'KeyR') { e.preventDefault(); resetTimer(); }
+      else if (e.code === 'KeyC') { e.preventDefault(); toggleCompactMode(); }
+      else if (e.code === 'KeyD') { 
+        e.preventDefault(); 
+        if (e.shiftKey) { changeDeaths(-1); } else { changeDeaths(1); }
+      }
     });
   </script>
 </body>
