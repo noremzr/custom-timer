@@ -11,6 +11,7 @@
       --accent-color: #00ff88;
       --accent-pause: #ffaa00;
       --accent-death: #ff4d4d;
+      --accent-trophy: #ffd700;
       --text-main: #ffffff;
       --text-muted: #a0a0b8;
       --border-color: rgba(255, 255, 255, 0.1);
@@ -122,6 +123,13 @@
       gap: 12px;
     }
 
+    .badges-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
     .time-display {
       font-family: 'Chakra Petch', sans-serif;
       display: flex;
@@ -168,7 +176,35 @@
       text-align: center;
     }
 
-    .death-quick-btn {
+    .trophy-badge-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-family: 'Chakra Petch', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    .trophy-icon { font-size: 0.9rem; opacity: 0.9; }
+
+    .trophy-count-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-trophy);
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .trophy-total-text {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .quick-btn {
       background: rgba(255, 255, 255, 0.1);
       border: none;
       color: #fff;
@@ -185,8 +221,9 @@
       transition: background 0.15s ease;
     }
 
-    .death-badge-container:hover .death-quick-btn { display: flex; }
-    .death-quick-btn:hover { background: rgba(255, 255, 255, 0.3); }
+    .death-badge-container:hover .quick-btn,
+    .trophy-badge-container:hover .quick-btn { display: flex; }
+    .quick-btn:hover { background: rgba(255, 255, 255, 0.3); }
 
     .controls-panel {
       background: rgba(0, 0, 0, 0.4);
@@ -219,7 +256,7 @@
     select { flex: 1; cursor: pointer; }
     select option { background: #151520; color: #fff; }
     input.time-input { width: 42px; text-align: center; font-family: 'Chakra Petch', sans-serif; }
-    input.death-input { width: 60px; text-align: center; font-family: 'Chakra Petch', sans-serif; }
+    input.death-input, input.trophy-input { width: 60px; text-align: center; font-family: 'Chakra Petch', sans-serif; }
 
     button {
       background: rgba(255, 255, 255, 0.1);
@@ -250,7 +287,9 @@
 
     .timer-card.compact .timer-content-row { margin: 0; }
     .timer-card.compact .time-main { font-size: 2.7rem; }
-    .timer-card.compact .death-badge-container { padding: 2px 8px; }
+    .timer-card.compact .death-badge-container,
+    .timer-card.compact .trophy-badge-container { padding: 2px 8px; }
+    .timer-card.compact .badges-stack { gap: 4px; }
 
     .modal-overlay {
       position: absolute;
@@ -269,6 +308,8 @@
     .modal-overlay.active { display: flex; }
     .modal-title { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
     .modal-input { width: 100%; text-align: left; }
+    .modal-field { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .modal-field label { width: auto; }
     .modal-actions { display: flex; gap: 8px; width: 100%; }
     .modal-actions button { flex: 1; }
   </style>
@@ -283,6 +324,14 @@
     <div class="modal-overlay" id="customModal">
       <div class="modal-title">Nome do novo jogo / perfil:</div>
       <input type="text" class="modal-input" id="modalProfileInput" placeholder="Ex: Dark Souls" autofocus>
+      <div class="modal-field">
+        <label for="modalTrophiesInput">Troféus atuais (opcional):</label>
+        <input type="number" class="modal-input" id="modalTrophiesInput" min="0" value="0">
+      </div>
+      <div class="modal-field">
+        <label for="modalTrophyTotalInput">Total de troféus (opcional):</label>
+        <input type="number" class="modal-input" id="modalTrophyTotalInput" min="0" value="0">
+      </div>
       <div class="modal-actions">
         <button class="btn-primary" onclick="confirmNewProfile()">Salvar</button>
         <button onclick="closeModal()">Cancelar</button>
@@ -304,11 +353,21 @@
         <div class="time-ms" id="msTime">.00</div>
       </div>
 
-      <div class="death-badge-container" title="Contador de Mortes">
-        <span class="death-icon">💀</span>
-        <button class="death-quick-btn" onclick="changeDeaths(-1)">-</button>
-        <span class="death-count-text" id="deathCountDisplay">0</span>
-        <button class="death-quick-btn" onclick="changeDeaths(1)">+</button>
+      <div class="badges-stack">
+        <div class="death-badge-container" title="Contador de Mortes">
+          <span class="death-icon">💀</span>
+          <button class="quick-btn" onclick="changeDeaths(-1)">-</button>
+          <span class="death-count-text" id="deathCountDisplay">0</span>
+          <button class="quick-btn" onclick="changeDeaths(1)">+</button>
+        </div>
+
+        <div class="trophy-badge-container" id="trophyBadge" title="Contador de Troféus" style="display: none;">
+          <span class="trophy-icon">🏆</span>
+          <button class="quick-btn" onclick="changeTrophies(-1)">-</button>
+          <span class="trophy-count-text" id="trophyCountDisplay">0</span>
+          <span class="trophy-total-text" id="trophyTotalDisplay"></span>
+          <button class="quick-btn" onclick="changeTrophies(1)">+</button>
+        </div>
       </div>
     </div>
 
@@ -333,6 +392,19 @@
         <input type="number" class="death-input" id="inputDeaths" placeholder="0" min="0" value="0">
         <button class="btn-primary" onclick="applyManualDeaths()">Setar</button>
         <button onclick="resetDeaths()">Zerar Mortes</button>
+      </div>
+
+      <div class="row">
+        <label>Troféus:</label>
+        <input type="number" class="trophy-input" id="inputTrophies" placeholder="0" min="0" value="0">
+        <button class="btn-primary" onclick="applyManualTrophies()">Setar</button>
+        <button onclick="resetTrophies()">Zerar Troféus</button>
+      </div>
+
+      <div class="row">
+        <label>Total:</label>
+        <input type="number" class="trophy-input" id="inputTrophyTotal" placeholder="0" min="0" value="0">
+        <button class="btn-primary" onclick="applyTrophyTotal()">Setar Total</button>
       </div>
 
       <div class="row" style="justify-content: space-between; margin-top: 2px;">
@@ -361,12 +433,14 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref('timerData');
 
-    let profiles = { "Jogo 1": { time: 0, deaths: 0 } };
+    let profiles = { "Jogo 1": { time: 0, deaths: 0, trophies: 0, trophyTotal: 0 } };
     let currentProfile = "Jogo 1";
 
     let startTime = 0;
     let elapsedTime = 0;
     let deathCount = 0;
+    let trophyCount = 0;
+    let trophyTotal = 0;
     let timerInterval = null;
     let isRunning = false;
     let isCompact = true;
@@ -384,6 +458,8 @@
       if (profiles[currentProfile]) {
         elapsedTime = profiles[currentProfile].time || 0;
         deathCount = profiles[currentProfile].deaths || 0;
+        trophyCount = profiles[currentProfile].trophies || 0;
+        trophyTotal = profiles[currentProfile].trophyTotal || 0;
       }
 
       if (isRunning) {
@@ -395,6 +471,7 @@
       renderProfileSelect();
       updateDisplay();
       updateDeathDisplay();
+      updateTrophyDisplay();
     });
 
     function syncToFirebase() {
@@ -406,6 +483,8 @@
 
       if (profiles[currentProfile]) {
         profiles[currentProfile].deaths = deathCount;
+        profiles[currentProfile].trophies = trophyCount;
+        profiles[currentProfile].trophyTotal = trophyTotal;
         profiles[currentProfile].time = elapsedTime;
       }
 
@@ -448,10 +527,14 @@
       if (isRunning) pauseTimer();
       profiles[currentProfile].time = elapsedTime;
       profiles[currentProfile].deaths = deathCount;
+      profiles[currentProfile].trophies = trophyCount;
+      profiles[currentProfile].trophyTotal = trophyTotal;
 
       currentProfile = newProfile;
       elapsedTime = profiles[currentProfile].time || 0;
       deathCount = profiles[currentProfile].deaths || 0;
+      trophyCount = profiles[currentProfile].trophies || 0;
+      trophyTotal = profiles[currentProfile].trophyTotal || 0;
 
       syncToFirebase();
     }
@@ -459,6 +542,8 @@
     function openModal() {
       const input = document.getElementById('modalProfileInput');
       input.value = '';
+      document.getElementById('modalTrophiesInput').value = 0;
+      document.getElementById('modalTrophyTotalInput').value = 0;
       document.getElementById('customModal').classList.add('active');
       setTimeout(() => input.focus(), 50);
     }
@@ -471,7 +556,10 @@
       const input = document.getElementById('modalProfileInput');
       const name = input.value.trim();
       if (name && !profiles[name]) {
-        profiles[name] = { time: 0, deaths: 0 };
+        const trophiesVal = Math.max(0, parseInt(document.getElementById('modalTrophiesInput').value) || 0);
+        const totalVal = Math.max(0, parseInt(document.getElementById('modalTrophyTotalInput').value) || 0);
+        const trophies = totalVal > 0 ? Math.min(trophiesVal, totalVal) : trophiesVal;
+        profiles[name] = { time: 0, deaths: 0, trophies: trophies, trophyTotal: totalVal };
         switchProfile(name);
       }
       closeModal();
@@ -483,6 +571,8 @@
       currentProfile = Object.keys(profiles)[0];
       elapsedTime = profiles[currentProfile].time || 0;
       deathCount = profiles[currentProfile].deaths || 0;
+      trophyCount = profiles[currentProfile].trophies || 0;
+      trophyTotal = profiles[currentProfile].trophyTotal || 0;
       syncToFirebase();
     }
 
@@ -579,6 +669,40 @@
 
     function resetDeaths() {
       deathCount = 0;
+      syncToFirebase();
+    }
+
+    function updateTrophyDisplay() {
+      document.getElementById('trophyBadge').style.display = trophyTotal > 0 ? 'flex' : 'none';
+      document.getElementById('trophyCountDisplay').textContent = trophyCount;
+      document.getElementById('trophyTotalDisplay').textContent = trophyTotal > 0 ? `/${trophyTotal}` : '';
+      document.getElementById('inputTrophies').value = trophyCount;
+      document.getElementById('inputTrophyTotal').value = trophyTotal;
+    }
+
+    function changeTrophies(delta) {
+      const next = Math.max(0, trophyCount + delta);
+      trophyCount = trophyTotal > 0 ? Math.min(next, trophyTotal) : next;
+      syncToFirebase();
+    }
+
+    function applyManualTrophies() {
+      const val = parseInt(document.getElementById('inputTrophies').value);
+      if (isNaN(val) || val < 0) return;
+      trophyCount = trophyTotal > 0 ? Math.min(val, trophyTotal) : val;
+      syncToFirebase();
+    }
+
+    function applyTrophyTotal() {
+      const val = parseInt(document.getElementById('inputTrophyTotal').value);
+      if (isNaN(val) || val < 0) return;
+      trophyTotal = val;
+      if (trophyTotal > 0) trophyCount = Math.min(trophyCount, trophyTotal);
+      syncToFirebase();
+    }
+
+    function resetTrophies() {
+      trophyCount = 0;
       syncToFirebase();
     }
 
